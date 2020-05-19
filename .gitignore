@@ -4,3 +4,5 @@ __pycache__/
 .ipynb_checkpoints/
 runsppo_scratch/
 img_cloning/
+runs_ppo_vanilla
+img_cloning_scratch

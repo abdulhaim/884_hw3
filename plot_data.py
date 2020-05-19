@@ -35,9 +35,9 @@ def load_data(data_dir):
 def plot_data(data):
     xseries, yseries = data
     plt.figure()
-    plt.title("Behavior Cloning Training Loss")
-    plt.xlabel("Epochs")
-    plt.ylabel("Loss")
+    plt.title("PPO Scratch Cumulative Reward")
+    plt.xlabel("Episodes")
+    plt.ylabel("Reward")
 
     mean_reward = np.mean(yseries, axis=0)
     std_err = scipy.stats.sem(yseries, axis=0)
@@ -49,5 +49,5 @@ def plot_data(data):
     plt.show()
 
 if __name__ == "__main__":
-    data = load_data('runs/')
+    data = load_data('runsppo_scratch/')
     plot_data(data)

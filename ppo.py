@@ -33,9 +33,9 @@ class ActorCritic(nn.Module):
         super(ActorCritic, self).__init__()
         # action mean range -1 to 1
         self.actor =  nn.Sequential(
-                nn.Linear(state_dim, 32),
+                nn.Linear(state_dim, 64),
                 nn.Tanh(),
-                nn.Linear(32, 32),
+                nn.Linear(64, 32),
                 nn.Tanh(),
                 nn.Linear(32, action_dim),
                 nn.Tanh()
@@ -80,6 +80,9 @@ class ActorCritic(nn.Module):
         state_value = self.critic(state)
         
         return action_logprobs, torch.squeeze(state_value), dist_entropy
+
+    def load(self, state_dict):
+        self.load_state_dict(state_dict)
 
 class PPO:
     def __init__(self, state_dim, action_dim, action_std, lr, betas, gamma, K_epochs, eps_clip):
@@ -142,6 +145,11 @@ class PPO:
         # Copy new weights into old policy:
         self.policy_old.load_state_dict(self.policy.state_dict())
         
+    def load(self,name):
+        state_dict = torch.load(name)
+        self.policy.load(state_dict)
+        self.policy_old.load(state_dict)
+
 
 def train_ppo(env):
     ############## Hyperparameters ##############
@@ -230,6 +238,204 @@ def train_ppo(env):
             avg_length = 0
 
     writer.close()
+
+
+def set_weights(state_dict,policy, state_dict_keys, policy_dict_keys):
+    for index in range(len(state_dict_keys)):
+        policy.state_dict()[policy_dict_keys[index]].copy_(state_dict[state_dict_keys[index]])
+
+def train_ppo_vanilla(env):
+    ############## Hyperparameters ##############
+    env_name = "ppo_vanilla"
+    render = False
+    log_interval = 20           # print avg reward in the interval
+    max_episodes = 10000        # max training episodes
+    max_timesteps = 10000        # max timesteps in one episode
+    
+    update_timestep = 4000      # update policy every n timesteps
+    action_std = 0.5            # constant std for action distribution (Multivariate Normal)
+    K_epochs = 80               # update policy for K epochs
+    eps_clip = 0.2              # clip parameter for PPO
+    gamma = 0.99                # discount factor
+    
+    lr = 0.0003                 # parameters for Adam optimizer
+    betas = (0.9, 0.999)
+    
+    random_seed = None
+    #############################################
+    
+    writer = SummaryWriter("runs_" + env_name)
+
+    # creating environment
+    state_dim = env.observation_space.shape[0]
+    action_dim = env.action_space.shape[0]
+    
+    if random_seed:
+        print("Random Seed: {}".format(random_seed))
+        torch.manual_seed(random_seed)
+        env.seed(random_seed)
+        np.random.seed(random_seed)
+    
+    memory = Memory()
+    ppo = PPO(state_dim, action_dim, action_std, lr, betas, gamma, K_epochs, eps_clip)
+    print(lr,betas)
+    
+    state_dict = torch.load("models/cloning_v2.pth")
+    state_dict_keys = ["fc1.weight", "fc1.bias", "fc2.weight", "fc2.bias", "fc3.weight", "fc3.bias"]
+    actor_keys = ["0.weight", "0.bias", "2.weight", "2.bias", "4.weight", "4.bias"]
+
+    with torch.no_grad():
+        set_weights(state_dict,ppo.policy.actor, state_dict_keys, actor_keys)
+        set_weights(state_dict,ppo.policy_old.actor, state_dict_keys, actor_keys)
+
+    # logging variables
+    avg_length = 0
+    time_step = 0
+    total_time = 0
+    total_reward = 0
+    # training loop
+    for i_episode in range(1, max_episodes+1):
+        running_reward = 0
+        state = env.reset()
+        for t in range(max_timesteps):
+            time_step +=1
+            # Running policy_old:
+            action = ppo.select_action(state, memory)
+            state, reward, done, _ = env.step(action)
+            
+            # Saving reward and is_terminals:
+            memory.rewards.append(reward)
+            memory.is_terminals.append(done)
+            writer.add_scalar('data/total_reward', reward, total_time)
+
+            total_time+=1
+            # update if its time
+            if time_step % update_timestep == 0:
+                ppo.update(memory)
+                memory.clear_memory()
+                time_step = 0
+            running_reward += reward
+            total_reward+=reward
+            if render:
+                env.render()
+            if done:
+                writer.add_scalar('data/cum_reward', (gamma**t)*running_reward, total_time)
+                break
+        
+        avg_length += t
+        
+        # save every 500 episodes
+        if i_episode % 500 == 0:
+            torch.save(ppo.policy.state_dict(), './PPO_continuous_{}.pth'.format(env_name))
+            
+        # logging
+        if i_episode % log_interval == 0:
+            avg_length = int(avg_length/log_interval)
+            running_reward = int((running_reward/log_interval))
+            
+            print('Episode {} \t Avg length: {} \t Avg reward: {}'.format(i_episode, avg_length, total_reward/avg_length))
+            writer.add_scalar('data/avg_reward', total_reward/avg_length, i_episode)
+            running_reward = 0
+            avg_length = 0
+
+    writer.close()
+
+def train_ppo_joint_loss(env):
+    ############## Hyperparameters ##############
+    env_name = "ppo_joint"
+    render = False
+    log_interval = 20           # print avg reward in the interval
+    max_episodes = 10000        # max training episodes
+    max_timesteps = 10000        # max timesteps in one episode
+    
+    update_timestep = 4000      # update policy every n timesteps
+    action_std = 0.5            # constant std for action distribution (Multivariate Normal)
+    K_epochs = 80               # update policy for K epochs
+    eps_clip = 0.2              # clip parameter for PPO
+    gamma = 0.99                # discount factor
+    
+    lr = 0.0003                 # parameters for Adam optimizer
+    betas = (0.9, 0.999)
+    
+    random_seed = None
+    #############################################
+    
+    writer = SummaryWriter("runs_" + env_name)
+
+    # creating environment
+    state_dim = env.observation_space.shape[0]
+    action_dim = env.action_space.shape[0]
+    
+    if random_seed:
+        print("Random Seed: {}".format(random_seed))
+        torch.manual_seed(random_seed)
+        env.seed(random_seed)
+        np.random.seed(random_seed)
+    
+    memory = Memory()
+    ppo = PPO(state_dim, action_dim, action_std, lr, betas, gamma, K_epochs, eps_clip)
+    print(lr,betas)
+    
+    state_dict = torch.load("models/cloning_v2.pth")
+    state_dict_keys = ["fc1.weight", "fc1.bias", "fc2.weight", "fc2.bias", "fc3.weight", "fc3.bias"]
+    actor_keys = ["0.weight", "0.bias", "2.weight", "2.bias", "4.weight", "4.bias"]
+
+    with torch.no_grad():
+        set_weights(state_dict,ppo.policy.actor, state_dict_keys, actor_keys)
+        set_weights(state_dict,ppo.policy_old.actor, state_dict_keys, actor_keys)
+
+    # logging variables
+    avg_length = 0
+    time_step = 0
+    total_time = 0
+    total_reward = 0
+    # training loop
+    for i_episode in range(1, max_episodes+1):
+        running_reward = 0
+        state = env.reset()
+        for t in range(max_timesteps):
+            time_step +=1
+            # Running policy_old:
+            action = ppo.select_action(state, memory)
+            state, reward, done, _ = env.step(action)
+            
+            # Saving reward and is_terminals:
+            memory.rewards.append(reward)
+            memory.is_terminals.append(done)
+            writer.add_scalar('data/total_reward', reward, total_time)
+
+            total_time+=1
+            # update if its time
+            if time_step % update_timestep == 0:
+                ppo.update(memory)
+                memory.clear_memory()
+                time_step = 0
+            running_reward += reward
+            total_reward+=reward
+            if render:
+                env.render()
+            if done:
+                writer.add_scalar('data/cum_reward', (gamma**t)*running_reward, total_time)
+                break
+        
+        avg_length += t
+        
+        # save every 500 episodes
+        if i_episode % 500 == 0:
+            torch.save(ppo.policy.state_dict(), './PPO_continuous_{}.pth'.format(env_name))
+            
+        # logging
+        if i_episode % log_interval == 0:
+            avg_length = int(avg_length/log_interval)
+            running_reward = int((running_reward/log_interval))
+            
+            print('Episode {} \t Avg length: {} \t Avg reward: {}'.format(i_episode, avg_length, total_reward/avg_length))
+            writer.add_scalar('data/avg_reward', total_reward/avg_length, i_episode)
+            running_reward = 0
+            avg_length = 0
+
+    writer.close()
+       
        
 if __name__ == '__main__':
     args = parser.parse_args()

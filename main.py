@@ -15,7 +15,7 @@ if __name__ == "__main__":
     parser.add_argument('--n-episodes', type=int, default=int(100), help='number of maximum epsisodes to take.') # bout 4 million
     parser.add_argument('--cuda', type=bool, default=True, help='Enable CUDA training (recommended if possible).')
     parser.add_argument('--batch-size', type=int, default=64, help='Batch size.')
-    parser.add_argument('--n-hidden-units', type=int, default=64, help="Hidden units in NN")
+    parser.add_argument('--n-hidden-units', type=int, default=32, help="Hidden units in NN")
     parser.add_argument('--num-epochs', type=int, default=30, help="Epoch Number")
 
     args = parser.parse_args()

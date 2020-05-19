@@ -21,20 +21,20 @@ class Model(nn.Module):
         self.num_actions = num_actions
 
         self.args = args
-        self.name = "cloning"
+        self.name = "cloning_v2"
 
-        self.fc1 = nn.Linear(num_states, args.n_hidden_units)
-        self.fc2 = nn.Linear(args.n_hidden_units, args.n_hidden_units)
-        self.fc3 = nn.Linear(args.n_hidden_units, num_actions)
+        self.fc1 = nn.Linear(num_states, 64)
+        self.fc2 = nn.Linear(64, 32)
+        self.fc3 = nn.Linear(32, num_actions)
 
         self.mse = nn.MSELoss()
         self.optim = Adadelta(self.parameters())
         # self.optim = Adam(self.parameters(), lr=args.learning_rate)
 
     def forward(self, x):
-        x = F.relu(self.fc1(x))
-        x = F.relu(self.fc2(x))
-        x = self.fc3(x)
+        x = F.tanh(self.fc1(x))
+        x = F.tanh(self.fc2(x))
+        x = F.tanh(self.fc3(x))
         return x
 
     def optimize(self, state, action):
