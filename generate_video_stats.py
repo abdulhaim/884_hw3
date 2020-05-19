@@ -62,7 +62,7 @@ if __name__ == "__main__":
     random_seed = None
     #############################################
     
-    writer = SummaryWriter("runs" + env_name)
+    writer = SummaryWriter("runs_rl_" + env_name)
 
     # creating environment
     state_dim = env.observation_space.shape[0]
