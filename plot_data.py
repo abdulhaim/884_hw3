@@ -35,19 +35,19 @@ def load_data(data_dir):
 def plot_data(data):
     xseries, yseries = data
     plt.figure()
-    plt.title("PPO Scratch Cumulative Reward")
+    plt.title("PPO Joint Loss Cumulative Reward")
     plt.xlabel("Episodes")
     plt.ylabel("Reward")
 
     mean_reward = np.mean(yseries, axis=0)
     std_err = scipy.stats.sem(yseries, axis=0)
     h = std_err * scipy.stats.t.ppf((1.0 + 0.95) / 2.0, yseries.shape[0]-1)
-    plt.plot(xseries, mean_reward, label="Cloning Model")
+    plt.plot(xseries, mean_reward, label="PPO Model")
     plt.fill_between(xseries, mean_reward + h, mean_reward - h, alpha=0.2)
 
     plt.legend(loc='lower right')
     plt.show()
 
 if __name__ == "__main__":
-    data = load_data('runsppo_scratch/')
+    data = load_data('runs_ppo_joint/')
     plot_data(data)

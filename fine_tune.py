@@ -1,7 +1,7 @@
 import argparse
 
 from pusher_goal import PusherEnv
-from ppo import train_ppo, train_ppo_vanilla
+from ppo import train_ppo, train_ppo_vanilla, train_ppo_joint_loss
 import os
 os.environ['KMP_DUPLICATE_LIB_OK']='True'
 from model import Model
@@ -30,17 +30,17 @@ if __name__ == "__main__":
 
 
     ## PPO vanilla fine-tuned policy
-    num_states = 8
-    num_actions = 2
-    env2 = PusherEnv(render=False)
-    train_ppo_vanilla(env2)
+    #num_states = 8
+    #num_actions = 2
+    #env2 = PusherEnv(render=False)
+    #train_ppo_vanilla(env2)
 
 
 
     ## PPO joint loss fine-tuned policy
+    num_states = 8
+    num_actions = 2
+    env3 = PusherEnv(render=False)
+    train_ppo_joint_loss(env3)
 
-
-    ## learning curves
-    ## Evaluate the three policies on 100 episodes and report the average L2 distance between the object location and the goal location (20 pts).
-    ## Video for 10 episodes
 

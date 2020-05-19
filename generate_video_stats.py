@@ -23,10 +23,11 @@ if __name__ == "__main__":
 
     # from scratch -- PPO_continuous_ppo_scratch.pth
     # vanilla fine tune - PPO_continuous_ppo_vanilla.pth
+    # joint - PPO_continuous_ppo_joint.pth
 
     parser = argparse.ArgumentParser(description="behavioral_cloning")
 
-    parser.add_argument('--env', default='PusherEnvScratch', help='ROM to run')
+    parser.add_argument('--env', default='PusherEnvJoint', help='ROM to run')
     parser.add_argument('--learning-rate',type=float, default=.0005, help='Learning rate')
     parser.add_argument('--seed', type=int, default=1, help='Random seed for numpy, torch, random.')
     parser.add_argument('--logdir', type=str, default='runs', help='Directory for logging statistics')
@@ -41,7 +42,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
     logger = Logger(logdir=args.logdir, run_name=f"{args.env}-{time.ctime()}")
 
-    env_name = "ppo_scratch"
+    env_name = "ppo_joint"
     env = PusherEnv()
 
     render = False
@@ -75,7 +76,7 @@ if __name__ == "__main__":
     
     memory = Memory()
     model = PPO(state_dim, action_dim, action_std, lr, betas, gamma, K_epochs, eps_clip)
-    model.load("PPO_continuous_ppo_scratch.pth")
+    model.load("PPO_continuous_ppo_joint.pth")
 
     done = False
     step = 0
@@ -110,7 +111,7 @@ if __name__ == "__main__":
             s = "episode" + str(ep) + " reward " + str(total_reward)
             plt.title(s)
             observation = env.render()
-            plt.imsave("img_cloning_scratch/" + str(step) + ".png", observation)
+            plt.imsave("img_cloning_joint/" + str(step) + ".png", observation)
             step+=1
 
         done = False

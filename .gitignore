@@ -3,6 +3,10 @@ __pycache__/
 .DS_Store
 .ipynb_checkpoints/
 runsppo_scratch/
+runs_ppo_scratch/
+runs_ppo_joint/
 img_cloning/
-runs_ppo_vanilla
-img_cloning_scratch
+runs_ppo_vanilla/
+img_cloning_scratch/
+img_cloning_vanilla/
+img_cloning_joint/
